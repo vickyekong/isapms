@@ -1,12 +1,9 @@
 import logging
 from datetime import datetime
 from decimal import Decimal
-from pathlib import Path
 
-import joblib
 import numpy as np
 import pandas as pd
-from django.conf import settings
 from django.db import transaction
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import (
@@ -19,6 +16,7 @@ from sklearn.metrics import (
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 
+from apps.analytics.storage import ArtifactUnavailable, load_artifact, save_artifact
 from apps.records.services import attendance_stats, earlier_results, gpa_for_results
 
 logger = logging.getLogger(__name__)
@@ -177,18 +175,17 @@ def train_model(*, actor=None, sample=False):
         for index, grade in enumerate(GRADE_LABELS)
     }
     version = datetime.now().strftime("dt-%Y%m%d%H%M%S")
-    artifact_dir = Path(settings.MODEL_ARTIFACT_DIR)
-    artifact_dir.mkdir(parents=True, exist_ok=True)
-    artifact_path = artifact_dir / f"{version}.joblib"
-    joblib.dump(
-        {
-            "model": classifier,
-            "imputer": imputer,
-            "features": FEATURE_COLUMNS,
-            "labels": GRADE_LABELS,
-        },
-        artifact_path,
-    )
+    bundle = {
+        "model": classifier,
+        "imputer": imputer,
+        "features": FEATURE_COLUMNS,
+        "labels": GRADE_LABELS,
+    }
+    try:
+        artifact_path = save_artifact(bundle, version)
+    except Exception as exc:
+        logger.exception("Could not store model artifact %s", version)
+        raise AnalyticsError("The trained model could not be saved. Check the model storage configuration.") from exc
     with transaction.atomic():
         ModelVersion.objects.filter(is_active=True).update(is_active=False)
         model_version = ModelVersion.objects.create(
@@ -202,7 +199,7 @@ def train_model(*, actor=None, sample=False):
             feature_names=FEATURE_COLUMNS,
             training_rows=len(x_train),
             test_rows=len(x_test),
-            artifact_path=str(artifact_path),
+            artifact_path=artifact_path,
             is_active=True,
             is_sample=sample,
             notes="Decision Tree Classifier trained on completed course results. " + " ".join(labels_present),
@@ -214,9 +211,14 @@ def active_bundle():
     from apps.analytics.models import ModelVersion
 
     model_version = ModelVersion.objects.filter(is_active=True).first()
-    if model_version is None or not Path(model_version.artifact_path).exists():
+    if model_version is None:
         raise AnalyticsError("No trained model is available. An administrator needs to train the model first.")
-    bundle = joblib.load(model_version.artifact_path)
+    try:
+        bundle = load_artifact(model_version.artifact_path)
+    except ArtifactUnavailable as exc:
+        raise AnalyticsError(
+            "The trained model file is unavailable. An administrator needs to retrain the model."
+        ) from exc
     return model_version, bundle
 
 
@@ -227,8 +229,8 @@ def risk_for_grade(grade):
 def predict_for_enrolment(enrolment, *, actor=None, allow_partial=True, sample=False):
     from apps.analytics.models import Prediction
 
-    model_version, bundle = active_bundle()
     features, data_status = build_feature_row(enrolment, allow_partial=allow_partial)
+    model_version, bundle = active_bundle()
     frame = pd.DataFrame([features], columns=FEATURE_COLUMNS)
     transformed = bundle["imputer"].transform(frame)
     classifier = bundle["model"]

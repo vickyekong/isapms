@@ -1,5 +1,6 @@
 import os
 import sys
+import tempfile
 from datetime import timedelta
 from pathlib import Path
 
@@ -9,9 +10,27 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 load_dotenv(BASE_DIR.parent / ".env")
 
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-only-insecure-key-change-me")
-DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() in {"1", "true", "yes"}
+ON_VERCEL = os.getenv("VERCEL_ENV") in {"production", "preview"}
+VERCEL_HOSTS = [
+    host
+    for host in (
+        os.getenv("VERCEL_URL"),
+        os.getenv("VERCEL_BRANCH_URL"),
+        os.getenv("VERCEL_PROJECT_PRODUCTION_URL"),
+    )
+    if host
+]
+
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "")
+if not SECRET_KEY:
+    if ON_VERCEL:
+        from django.core.exceptions import ImproperlyConfigured
+
+        raise ImproperlyConfigured("Set DJANGO_SECRET_KEY in the Vercel project environment variables.")
+    SECRET_KEY = "dev-only-insecure-key-change-me"
+DEBUG = os.getenv("DJANGO_DEBUG", "False" if ON_VERCEL else "True").lower() in {"1", "true", "yes"}
 ALLOWED_HOSTS = [host.strip() for host in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if host.strip()]
+ALLOWED_HOSTS += [host for host in VERCEL_HOSTS if host not in ALLOWED_HOSTS]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -71,6 +90,18 @@ if USE_SQLITE:
         }
     }
 else:
+    db_options = {"charset": "utf8mb4"}
+    db_ssl_ca = os.getenv("DB_SSL_CA", "")
+    if os.getenv("DB_SSL_CA_PEM"):
+        # Hosts without a writable project directory (Vercel) pass the CA certificate as text.
+        db_ssl_ca = os.path.join(tempfile.gettempdir(), "isapms-db-ca.pem")
+        with open(db_ssl_ca, "w", encoding="utf-8") as ca_file:
+            ca_file.write(os.environ["DB_SSL_CA_PEM"].replace("\\n", "\n"))
+    if db_ssl_ca:
+        db_options["ssl"] = {"ca": db_ssl_ca}
+    elif os.getenv("DB_SSL", "").lower() in {"1", "true", "yes"}:
+        # Encrypts the connection without verifying the server certificate.
+        db_options["ssl"] = {"check_hostname": False}
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.mysql",
@@ -79,7 +110,7 @@ else:
             "PASSWORD": os.getenv("DB_PASSWORD", ""),
             "HOST": os.getenv("DB_HOST", "127.0.0.1"),
             "PORT": os.getenv("DB_PORT", "3306"),
-            "OPTIONS": {"charset": "utf8mb4"},
+            "OPTIONS": db_options,
         }
     }
 
@@ -108,7 +139,7 @@ CORS_ALLOWED_ORIGINS = [
     if origin.strip()
 ]
 CORS_ALLOW_CREDENTIALS = True
-CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
+CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS + [f"https://{host}" for host in VERCEL_HOSTS]
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
@@ -149,11 +180,18 @@ SPECTACULAR_SETTINGS = {
 
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@nexusstate.edu.ng")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "" if ON_VERCEL else "http://localhost:5173")
 
 INSTITUTION_NAME = os.getenv("INSTITUTION_NAME", "Nexus State University")
 INSTITUTION_SHORT_NAME = os.getenv("INSTITUTION_SHORT_NAME", "NSU")
-MODEL_ARTIFACT_DIR = BASE_DIR / "artifacts"
+BUNDLED_ARTIFACT_DIR = BASE_DIR / "artifacts"
+# Vercel functions can only write to /tmp; models are persisted in Vercel Blob there.
+MODEL_ARTIFACT_DIR = Path(
+    os.getenv("MODEL_ARTIFACT_DIR", "/tmp/isapms-artifacts" if ON_VERCEL else str(BUNDLED_ARTIFACT_DIR))
+)
+
+if ON_VERCEL:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True

@@ -99,7 +99,8 @@ class PasswordResetRequestView(APIView):
         if user:
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
-            link = f"{settings.FRONTEND_URL}/reset-password?uid={uid}&token={token}"
+            site = settings.FRONTEND_URL or request.build_absolute_uri("/").rstrip("/")
+            link = f"{site}/reset-password?uid={uid}&token={token}"
             send_mail(
                 "Reset your ISAPMS password",
                 f"Use this link to choose a new password:\n{link}\n\nIf you did not request this, you can ignore the message.",

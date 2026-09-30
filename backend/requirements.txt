@@ -13,3 +13,4 @@ joblib>=1.3,<2
 openpyxl>=3.1,<4
 reportlab>=4.1,<5
 gunicorn>=22.0,<24
+vercel>=0.11,<1

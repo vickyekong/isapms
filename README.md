@@ -112,7 +112,7 @@ Retrain from Analytics, or with:
 python manage.py seed_sample_data
 ```
 
-The saved model file is written to `backend/artifacts/`.
+The saved model file is written to `backend/artifacts/`, or to Vercel Blob when `BLOB_READ_WRITE_TOKEN` is set.
 
 ## Reports
 
@@ -129,6 +129,53 @@ docker-compose.yml
 Main API prefix: `/api/v1/`.
 
 ## Deployment
+
+### Vercel
+
+`vercel.json` deploys both parts as one Vercel project with two services on one domain:
+
+- `backend` (Django) receives every request under `/api/`, which matches the API's `/api/v1/` routes.
+- `frontend` (Vite) serves everything else. Page reloads on routes such as `/students` fall back to `index.html`.
+
+The browser calls the API at the relative path `/api/v1`, so previews and production each talk to their own backend.
+
+Vercel's own hostnames are added to `ALLOWED_HOSTS` automatically, debug mode defaults to off, and password-reset links use the domain the request arrived on.
+
+#### 1. Database (Aiven for MySQL)
+
+The Docker database only exists on your computer, so production needs a hosted MySQL 8.
+
+1. Create an account at [aiven.io](https://aiven.io), then create a **MySQL** service on the free plan in a region close to your Vercel region.
+2. When the service is running, its overview page shows the host, port, user (`avnadmin`), password and database (`defaultdb`). Download the **CA certificate** from the same page.
+3. Apply the schema from your computer, reading the values from the overview page:
+
+   ```bash
+   cd backend
+   DB_HOST=<host> DB_PORT=<port> DB_USER=avnadmin DB_PASSWORD='<password>' DB_NAME=defaultdb \
+   DB_SSL_CA=~/Downloads/ca.pem python manage.py migrate
+   ```
+
+4. Create your own administrator with `createsuperuser` using the same variables. Avoid `seed_sample_data` on a public deployment: it creates accounts whose shared password is printed in this README.
+
+#### 2. Model storage (Vercel Blob)
+
+Vercel functions cannot keep files, so trained models are stored in Vercel Blob. In the Vercel project, open **Storage**, create a **Blob** store with **private** access, and connect it to the project. Vercel adds `BLOB_READ_WRITE_TOKEN`, and from then on every training run uploads its model there. Without the token, models are saved to `backend/artifacts/` as before.
+
+After the first deploy, sign in as an administrator and train the model from **Analytics**. If you train from your computer against the production database instead, set `BLOB_READ_WRITE_TOKEN` in your shell too, or the deployed backend will not find the model file.
+
+#### 3. Environment variables
+
+Set these for the Production and Preview environments:
+
+- `DJANGO_SECRET_KEY`: required. The backend refuses to start on Vercel without it.
+- `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`: from the Aiven overview page.
+- `DB_SSL_CA_PEM`: the full text of the Aiven CA certificate, including the `BEGIN` and `END` lines. The backend writes it to `/tmp` and verifies the database server with it.
+- `BLOB_READ_WRITE_TOKEN`: added for you when the Blob store is connected.
+- Optional: `DJANGO_ALLOWED_HOSTS` for a custom domain, and SMTP settings via `EMAIL_BACKEND`.
+
+Test both services together locally with `vercel dev`.
+
+### Your own server
 
 1. Set `DJANGO_DEBUG=False` and replace `DJANGO_SECRET_KEY`, database password, and `DJANGO_ALLOWED_HOSTS`.
 2. Point `CORS_ALLOWED_ORIGINS` and `FRONTEND_URL` at the public site.
