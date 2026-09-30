@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { errorMessage } from "../api/client";
+import { api, errorMessage } from "../api/client";
 import { Alert, Button, Field, inputClass } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 
@@ -11,21 +11,33 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [demo, setDemo] = useState(null);
+
+  useEffect(() => {
+    api
+      .get("/health/")
+      .then(({ data }) => setDemo(data.demo ? data : null))
+      .catch(() => setDemo(null));
+  }, []);
 
   if (user) return <Navigate to="/" replace />;
 
-  async function onSubmit(event) {
-    event.preventDefault();
+  async function signIn(id, secret) {
     setLoading(true);
     setError("");
     try {
-      await login(identifier.trim(), password);
+      await login(id, secret);
       navigate("/");
     } catch (err) {
       setError(errorMessage(err));
     } finally {
       setLoading(false);
     }
+  }
+
+  function onSubmit(event) {
+    event.preventDefault();
+    signIn(identifier.trim(), password);
   }
 
   return (
@@ -58,6 +70,27 @@ export default function LoginPage() {
           <Link className="block text-sm font-semibold text-forest" to="/forgot-password">
             Forgot password?
           </Link>
+          {demo ? (
+            <div className="space-y-3 rounded-lg border border-gold/40 bg-white p-4">
+              <p className="text-sm font-semibold text-forest">Demo with fictional sample data</p>
+              <p className="text-xs text-[#526059]">
+                Changes you make are temporary and reset when the server restarts. Password for every sample account: {demo.demo_password}
+              </p>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {demo.demo_accounts.map((account) => (
+                  <Button
+                    key={account.identifier}
+                    type="button"
+                    variant="secondary"
+                    disabled={loading}
+                    onClick={() => signIn(account.identifier, demo.demo_password)}
+                  >
+                    {account.role}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </form>
       </section>
     </main>

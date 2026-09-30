@@ -1,4 +1,5 @@
 import numpy as np
+from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
@@ -116,10 +117,13 @@ class Command(BaseCommand):
         return departments
 
     def _user(self, email, username, first_name, surname, role, staff=False):
-        return User.objects.create_user(
-            email=email,
+        # Every sample account shares one published password, so hash it once instead of per user.
+        if not hasattr(self, "_password_hash"):
+            self._password_hash = make_password(SAMPLE_PASSWORD)
+        return User.objects.create(
+            email=User.objects.normalize_email(email),
             username=username,
-            password=SAMPLE_PASSWORD,
+            password=self._password_hash,
             first_name=first_name,
             last_name=surname,
             role=role,

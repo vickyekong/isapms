@@ -81,12 +81,15 @@ TEMPLATES = [
     }
 ]
 
-USE_SQLITE = os.getenv("USE_SQLITE", "").lower() in {"1", "true", "yes"} or "test" in sys.argv
+# Demo mode: a throwaway SQLite database in /tmp, filled with the fictional sample data on startup.
+# Changes are lost when the server restarts and each Vercel instance has its own copy.
+DEMO_MODE = os.getenv("DEMO_MODE", "").lower() in {"1", "true", "yes"}
+USE_SQLITE = os.getenv("USE_SQLITE", "").lower() in {"1", "true", "yes"} or "test" in sys.argv or DEMO_MODE
 if USE_SQLITE:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
+            "NAME": Path(tempfile.gettempdir()) / "isapms-demo.sqlite3" if DEMO_MODE else BASE_DIR / "db.sqlite3",
         }
     }
 else:

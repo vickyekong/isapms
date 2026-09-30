@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
@@ -11,7 +12,17 @@ class HealthView(APIView):
     authentication_classes = []
 
     def get(self, request):
-        return Response({"status": "ok", "service": "isapms"})
+        payload = {"status": "ok", "service": "isapms", "demo": settings.DEMO_MODE}
+        if settings.DEMO_MODE:
+            from apps.accounts.management.commands.seed_sample_data import SAMPLE_PASSWORD
+
+            payload["demo_password"] = SAMPLE_PASSWORD
+            payload["demo_accounts"] = [
+                {"role": "Administrator", "identifier": "sample.admin@nexusstate.edu.ng"},
+                {"role": "Lecturer", "identifier": "sample.lecturer01@nexusstate.edu.ng"},
+                {"role": "Student", "identifier": "sample.student001@nexusstate.edu.ng"},
+            ]
+        return Response(payload)
 
 
 urlpatterns = [
