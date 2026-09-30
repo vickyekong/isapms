@@ -1,0 +1,23 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: isapms-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: isapms
+      MYSQL_USER: isapms
+      MYSQL_PASSWORD: ${DB_PASSWORD:-change_me_local_only}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-change_me_root_local_only}
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - isapms_mysql:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  isapms_mysql:

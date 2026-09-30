@@ -1,0 +1,23 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.sqlite3
+.env
+backend/.env
+frontend/.env
+frontend/node_modules/
+frontend/dist/
+backend/staticfiles/
+backend/media/
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+.DS_Store
+frontend/test-results/
+frontend/playwright-report/
+
+# Models created by test runs; keep only the trained sample model
+backend/artifacts/*.joblib
+!backend/artifacts/dt-20260925171657.joblib
