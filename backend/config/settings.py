@@ -84,6 +84,8 @@ TEMPLATES = [
 # Demo mode: a throwaway SQLite database in /tmp, filled with the fictional sample data on startup.
 # Changes are lost when the server restarts and each Vercel instance has its own copy.
 DEMO_MODE = os.getenv("DEMO_MODE", "").lower() in {"1", "true", "yes"}
+if DEMO_MODE:
+    MIDDLEWARE.insert(0, "config.demo.DemoDatabaseMiddleware")
 USE_SQLITE = os.getenv("USE_SQLITE", "").lower() in {"1", "true", "yes"} or "test" in sys.argv or DEMO_MODE
 if USE_SQLITE:
     DATABASES = {

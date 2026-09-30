@@ -1,8 +1,12 @@
 import fcntl
 import io
+import threading
 
 from django.conf import settings
 from django.core.management import call_command
+
+_ready = False
+_lock = threading.Lock()
 
 
 def prepare_demo_database():
@@ -16,3 +20,17 @@ def prepare_demo_database():
 
         if not User.objects.filter(is_sample=True).exists():
             call_command("seed_sample_data", stdout=io.StringIO())
+
+
+class DemoDatabaseMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        global _ready
+        if not _ready:
+            with _lock:
+                if not _ready:
+                    prepare_demo_database()
+                    _ready = True
+        return self.get_response(request)
