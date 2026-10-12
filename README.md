@@ -61,7 +61,7 @@ On your own computer, all sample passwords are `Sample@12345`.
 | Lecturer | `sample.lecturer01@uniuyo.edu.ng` |
 | Student | `sample.student001@uniuyo.edu.ng` |
 
-Students and lecturers can also sign in with a matriculation number or staff ID, for example `UU/SAMPLE/2023/001`.
+Students and lecturers can also sign in with a matriculation number or staff ID, for example `UU/SAMPLE/2026/001`.
 
 For any shared deployment, set `SAMPLE_PASSWORD` when running the seed command so the sample accounts do not use the published password. The seed command can be run again; it replaces previous sample records and retrains the model.
 
