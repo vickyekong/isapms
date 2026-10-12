@@ -1,3 +1,4 @@
+from django.core.cache import cache
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
@@ -6,6 +7,7 @@ from apps.academics.models import AcademicSession, Course, Department, Enrolment
 
 
 def client_for(user):
+    cache.clear()
     api = APIClient()
     response = api.post("/api/v1/auth/login/", {"identifier": user.email, "password": "Sample@12345"}, format="json")
     api.credentials(HTTP_AUTHORIZATION=f"Bearer {response.data['access']}")
