@@ -16,7 +16,7 @@ class AcademicJourneyTests(TestCase):
         lecturer = self.client.post(
             "/api/v1/lecturers/",
             {
-                "staff_id": "NSU-STAFF-001",
+                "staff_id": "UU-STAFF-001",
                 "first_name": "Chinedu",
                 "surname": "Bello",
                 "email": "lecturer@example.com",
@@ -67,7 +67,7 @@ class AcademicJourneyTests(TestCase):
         student = self.client.post(
             "/api/v1/students/",
             {
-                "matric_number": "NSU/2026/014",
+                "matric_number": "UU/2026/014",
                 "first_name": "Fatima",
                 "surname": "Danjuma",
                 "email": "fatima@example.com",
@@ -144,7 +144,7 @@ class AcademicJourneyTests(TestCase):
 
     def test_duplicate_matric_is_rejected(self):
         payload = {
-            "matric_number": "NSU/2026/001",
+            "matric_number": "UU/2026/001",
             "first_name": "Ada",
             "surname": "Okonkwo",
             "email": "ada1@example.com",

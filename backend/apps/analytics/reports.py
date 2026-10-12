@@ -213,7 +213,7 @@ def _headers_and_rows(report_type, params, user):
 def render_report(report_type, export_format, params, user):
     headers, rows = _headers_and_rows(report_type, params, user)
     rows = [["" if cell is None else cell for cell in row] for row in rows]
-    institution = get_setting("institution_name", "Nexus State University")
+    institution = get_setting("institution_name", "University of Uyo")
     title = report_type.replace("_", " ").title()
     filename = f"{report_type}.{export_format if export_format != 'excel' else 'xlsx'}"
     if export_format == "csv":

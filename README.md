@@ -2,7 +2,7 @@
 
 Web application for a Nigerian university setting. It keeps student records, attendance, and results in one place, flags students who may need support, and uses a scikit-learn decision tree to estimate grades.
 
-The sample institution is **Nexus State University**. Every seeded record is marked as sample data.
+The institution is the **University of Uyo**. Students, lecturers, and results created by the seed command are fictional and marked as sample data.
 
 Predictions are decision support only. They do not replace professional academic judgement and they are not final results.
 
@@ -53,17 +53,17 @@ Open [http://localhost:5173](http://localhost:5173).
 
 ## Sample sign-in
 
-All sample passwords are `Sample@12345`.
+On your own computer, all sample passwords are `Sample@12345`.
 
 | Role | Identifier |
 | --- | --- |
-| Administrator | `sample.admin@nexusstate.edu.ng` |
-| Lecturer | `sample.lecturer01@nexusstate.edu.ng` |
-| Student | `sample.student001@nexusstate.edu.ng` |
+| Administrator | `sample.admin@uniuyo.edu.ng` |
+| Lecturer | `sample.lecturer01@uniuyo.edu.ng` |
+| Student | `sample.student001@uniuyo.edu.ng` |
 
-Students and lecturers can also sign in with a matriculation number or staff ID, for example `NSU/SAMPLE/2023/001`.
+Students and lecturers can also sign in with a matriculation number or staff ID, for example `UU/SAMPLE/2023/001`.
 
-Change these passwords before any real deployment. The seed command can be run again; it replaces previous sample records and retrains the model.
+For any shared deployment, set `SAMPLE_PASSWORD` when running the seed command so the sample accounts do not use the published password. The seed command can be run again; it replaces previous sample records and retrains the model.
 
 ## Everyday commands
 
@@ -155,7 +155,7 @@ The Docker database only exists on your computer, so production needs a hosted M
    DB_SSL_CA=~/Downloads/ca.pem python manage.py migrate
    ```
 
-4. Create your own administrator with `createsuperuser` using the same variables. Avoid `seed_sample_data` on a public deployment: it creates accounts whose shared password is printed in this README.
+4. Create your own administrator with `createsuperuser` using the same variables. To load the fictional sample records too, run `seed_sample_data` with `SAMPLE_PASSWORD` set to a private password; otherwise the sample accounts would use the password printed in this README.
 
 #### 2. Model storage (Vercel Blob)
 

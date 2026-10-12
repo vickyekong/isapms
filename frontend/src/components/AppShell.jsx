@@ -52,8 +52,8 @@ export default function AppShell() {
     <div className="min-h-screen bg-paper text-ink md:grid md:grid-cols-[260px_1fr]">
       <aside className={`${open ? "block" : "hidden"} border-b border-white/10 bg-forest text-white md:block`}>
         <div className="px-5 py-6">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gold font-serif text-lg text-forest">NSU</div>
-          <p className="mt-4 font-serif text-2xl leading-tight">Nexus State University</p>
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gold font-serif text-lg text-forest">UU</div>
+          <p className="mt-4 font-serif text-2xl leading-tight">University of Uyo</p>
           <p className="mt-2 text-xs uppercase tracking-[0.16em] text-[#D7E6DF]">Academic monitoring</p>
         </div>
         <nav className="space-y-1 px-3 pb-6" aria-label="Primary">

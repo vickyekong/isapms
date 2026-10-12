@@ -12,11 +12,11 @@ DEFAULT_GRADING_SCALE = [
 
 DEFAULT_SETTINGS = {
     "institution_name": {
-        "value": getattr(settings, "INSTITUTION_NAME", "Nexus State University"),
+        "value": getattr(settings, "INSTITUTION_NAME", "University of Uyo"),
         "description": "Institution name shown in the interface and reports.",
     },
     "institution_short_name": {
-        "value": getattr(settings, "INSTITUTION_SHORT_NAME", "NSU"),
+        "value": getattr(settings, "INSTITUTION_SHORT_NAME", "UNIUYO"),
         "description": "Short institution name.",
     },
     "attendance_threshold": {

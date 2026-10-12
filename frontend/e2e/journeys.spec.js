@@ -11,13 +11,13 @@ async function signIn(page, identifier) {
 }
 
 test("administrator can sign in and open the student register", async ({ page }) => {
-  await signIn(page, "sample.admin@nexusstate.edu.ng");
+  await signIn(page, "sample.admin@uniuyo.edu.ng");
   await page.getByRole("link", { name: "Students" }).click();
   await expect(page.getByRole("heading", { name: "Students" })).toBeVisible();
 });
 
 test("lecturer can open attendance and a student is blocked from user management", async ({ page }) => {
-  await signIn(page, "sample.lecturer01@nexusstate.edu.ng");
+  await signIn(page, "sample.lecturer01@uniuyo.edu.ng");
   await page.getByRole("link", { name: "Attendance" }).click();
   await expect(page.getByRole("heading", { name: "Attendance" })).toBeVisible();
   await page.goto("/users");
@@ -25,7 +25,7 @@ test("lecturer can open attendance and a student is blocked from user management
 });
 
 test("student can view personal results", async ({ page }) => {
-  await signIn(page, "sample.student001@nexusstate.edu.ng");
+  await signIn(page, "sample.student001@uniuyo.edu.ng");
   await page.getByRole("link", { name: "Results" }).click();
   await expect(page.getByRole("heading", { name: "Results" })).toBeVisible();
 });

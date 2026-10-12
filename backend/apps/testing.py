@@ -34,7 +34,7 @@ def make_structure():
     return faculty, department, session, semester
 
 
-def make_student(department, session, matric="NSU/2026/001", email="student@example.com"):
+def make_student(department, session, matric="UU/2026/001", email="student@example.com"):
     user = make_user(email, User.Role.STUDENT, username=matric.replace("/", "-"), first_name="Ada", last_name="Okonkwo")
     return Student.objects.create(
         user=user,

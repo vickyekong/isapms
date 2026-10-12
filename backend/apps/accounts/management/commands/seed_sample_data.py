@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand
@@ -22,7 +24,8 @@ from apps.analytics.models import ModelVersion, Prediction
 from apps.records.models import Assessment, Attendance, Result
 from apps.records.services import assign_grade, quantize_score, update_student_cgpa
 
-SAMPLE_PASSWORD = "Sample@12345"
+SAMPLE_PASSWORD = os.getenv("SAMPLE_PASSWORD") or "Sample@12345"
+SAMPLE_DOMAIN = "uniuyo.edu.ng"
 FIRST_NAMES = [
     "Adaeze", "Chinedu", "Fatima", "Ibrahim", "Ngozi", "Tunde", "Amina", "Emeka", "Halima", "Olumide",
     "Blessing", "Yusuf", "Chioma", "Musa", "Zainab", "Kelechi", "Aisha", "Segun", "Funmilayo", "Ifeanyi",
@@ -61,11 +64,12 @@ class Command(BaseCommand):
             self._attendance_and_scores(students, historical, current)
         model = train_model(sample=True)
         self.stdout.write(self.style.SUCCESS("Sample data created."))
-        self.stdout.write("Institution: Nexus State University (sample)")
-        self.stdout.write(f"Administrator: sample.admin@nexusstate.edu.ng / {SAMPLE_PASSWORD}")
-        self.stdout.write(f"Lecturer example: sample.lecturer01@nexusstate.edu.ng / {SAMPLE_PASSWORD}")
-        self.stdout.write(f"Student example: sample.student001@nexusstate.edu.ng / {SAMPLE_PASSWORD}")
-        self.stdout.write("Students can also sign in with a sample matriculation number such as NSU/SAMPLE/2026/001.")
+        shown_password = "(the SAMPLE_PASSWORD you set)" if os.getenv("SAMPLE_PASSWORD") else SAMPLE_PASSWORD
+        self.stdout.write("Institution: University of Uyo (sample records)")
+        self.stdout.write(f"Administrator: sample.admin@{SAMPLE_DOMAIN} / {shown_password}")
+        self.stdout.write(f"Lecturer example: sample.lecturer01@{SAMPLE_DOMAIN} / {shown_password}")
+        self.stdout.write(f"Student example: sample.student001@{SAMPLE_DOMAIN} / {shown_password}")
+        self.stdout.write("Students can also sign in with a sample matriculation number such as UU/SAMPLE/2026/001.")
         self.stdout.write(
             f"Model {model.version}: accuracy {model.accuracy:.2%}, precision {model.precision:.2%}, "
             f"recall {model.recall:.2%}, F1 {model.f1_score:.2%}."
@@ -133,18 +137,18 @@ class Command(BaseCommand):
         )
 
     def _admin(self):
-        return self._user("sample.admin@nexusstate.edu.ng", "sample.admin", "Sample", "Administrator", User.Role.ADMIN, staff=True)
+        return self._user(f"sample.admin@{SAMPLE_DOMAIN}", "sample.admin", "Sample", "Administrator", User.Role.ADMIN, staff=True)
 
     def _lecturers(self, departments):
         lecturers = {}
         for index, department in enumerate(departments, start=1):
             first_name = FIRST_NAMES[index]
             surname = SURNAMES[index]
-            email = f"sample.lecturer{index:02d}@nexusstate.edu.ng"
-            user = self._user(email, f"NSU-STAFF-{index:03d}", first_name, surname, User.Role.LECTURER)
+            email = f"sample.lecturer{index:02d}@{SAMPLE_DOMAIN}"
+            user = self._user(email, f"UU-STAFF-{index:03d}", first_name, surname, User.Role.LECTURER)
             lecturer = Lecturer.objects.create(
                 user=user,
-                staff_id=f"NSU-STAFF-{index:03d}",
+                staff_id=f"UU-STAFF-{index:03d}",
                 first_name=first_name,
                 surname=surname,
                 email=email,
@@ -194,8 +198,8 @@ class Command(BaseCommand):
             band = BANDS[index]
             first_name = FIRST_NAMES[index % len(FIRST_NAMES)]
             surname = SURNAMES[index % len(SURNAMES)]
-            matric = f"NSU/SAMPLE/{2027 - (level // 100)}/{index + 1:03d}"
-            email = f"sample.student{index + 1:03d}@nexusstate.edu.ng"
+            matric = f"UU/SAMPLE/{2027 - (level // 100)}/{index + 1:03d}"
+            email = f"sample.student{index + 1:03d}@{SAMPLE_DOMAIN}"
             user = self._user(email, matric.replace("/", "-"), first_name, surname, User.Role.STUDENT)
             student = Student.objects.create(
                 user=user,

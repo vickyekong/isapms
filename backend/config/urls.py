@@ -14,13 +14,13 @@ class HealthView(APIView):
     def get(self, request):
         payload = {"status": "ok", "service": "isapms", "demo": settings.DEMO_MODE}
         if settings.DEMO_MODE:
-            from apps.accounts.management.commands.seed_sample_data import SAMPLE_PASSWORD
+            from apps.accounts.management.commands.seed_sample_data import SAMPLE_DOMAIN, SAMPLE_PASSWORD
 
             payload["demo_password"] = SAMPLE_PASSWORD
             payload["demo_accounts"] = [
-                {"role": "Administrator", "identifier": "sample.admin@nexusstate.edu.ng"},
-                {"role": "Lecturer", "identifier": "sample.lecturer01@nexusstate.edu.ng"},
-                {"role": "Student", "identifier": "sample.student001@nexusstate.edu.ng"},
+                {"role": "Administrator", "identifier": f"sample.admin@{SAMPLE_DOMAIN}"},
+                {"role": "Lecturer", "identifier": f"sample.lecturer01@{SAMPLE_DOMAIN}"},
+                {"role": "Student", "identifier": f"sample.student001@{SAMPLE_DOMAIN}"},
             ]
         return Response(payload)
 

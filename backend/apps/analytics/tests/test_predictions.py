@@ -31,7 +31,7 @@ class PredictionTests(TestCase):
                 student = make_student(
                     self.department,
                     self.session,
-                    matric=f"NSU/2026/{index:03d}",
+                    matric=f"UU/2026/{index:03d}",
                     email=f"learner{index}@example.com",
                 )
                 enrolment = enrol(student, self.course)
@@ -50,7 +50,7 @@ class PredictionTests(TestCase):
         self.assertIn("enough academic records", response.data["detail"])
 
     def test_student_cannot_run_predictions(self):
-        student = make_student(self.department, self.session, matric="NSU/2026/900", email="own@example.com")
+        student = make_student(self.department, self.session, matric="UU/2026/900", email="own@example.com")
         student_client, _response = client_for(student.user)
         response = student_client.post(
             "/api/v1/predictions/",
@@ -65,7 +65,7 @@ class PredictionTests(TestCase):
         self.assertGreaterEqual(model_version.training_rows, 1)
         self.assertIn("matrix", model_version.confusion_matrix)
 
-        target = make_student(self.department, self.session, matric="NSU/2026/777", email="target@example.com")
+        target = make_student(self.department, self.session, matric="UU/2026/777", email="target@example.com")
         enrolment = enrol(target, self.course)
         Attendance.objects.create(enrolment=enrolment, date="2026-10-01", status="present")
         apply_assessment(enrolment, 30, None, self.admin)

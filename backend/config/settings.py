@@ -176,7 +176,7 @@ SIMPLE_JWT = {
 SPECTACULAR_SETTINGS = {
     "TITLE": "Intelligent Student Academic Performance Monitoring System API",
     "DESCRIPTION": (
-        "Versioned REST API for Nexus State University's academic performance monitoring "
+        "Versioned REST API for the University of Uyo's academic performance monitoring "
         "and predictive analytics platform."
     ),
     "VERSION": "1.0.0",
@@ -184,11 +184,11 @@ SPECTACULAR_SETTINGS = {
 }
 
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@nexusstate.edu.ng")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@uniuyo.edu.ng")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "" if ON_VERCEL else "http://localhost:5173")
 
-INSTITUTION_NAME = os.getenv("INSTITUTION_NAME", "Nexus State University")
-INSTITUTION_SHORT_NAME = os.getenv("INSTITUTION_SHORT_NAME", "NSU")
+INSTITUTION_NAME = os.getenv("INSTITUTION_NAME", "University of Uyo")
+INSTITUTION_SHORT_NAME = os.getenv("INSTITUTION_SHORT_NAME", "UNIUYO")
 BUNDLED_ARTIFACT_DIR = BASE_DIR / "artifacts"
 # Vercel functions can only write to /tmp; models are persisted in Vercel Blob there.
 MODEL_ARTIFACT_DIR = Path(

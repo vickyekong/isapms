@@ -44,17 +44,16 @@ export default function LoginPage() {
     <main className="grid min-h-screen lg:grid-cols-[1.1fr_0.9fr]">
       <section className="hidden bg-forest px-12 py-16 text-white lg:flex lg:flex-col lg:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-gold">Nexus State University</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-gold">University of Uyo</p>
           <h1 className="mt-6 max-w-xl font-serif text-5xl leading-tight">Intelligent Student Academic Performance Monitoring System</h1>
           <p className="mt-6 max-w-lg text-lg text-[#D7E6DF]">
             A single place for student records, attendance, results, and decision-support predictions for a Nigerian university.
           </p>
         </div>
-        <p className="text-sm text-[#D7E6DF]">Sample sign-in: sample.admin@nexusstate.edu.ng</p>
       </section>
       <section className="flex items-center justify-center bg-paper px-6 py-12">
         <form className="w-full max-w-md space-y-4" onSubmit={onSubmit}>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold lg:hidden">Nexus State University</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gold lg:hidden">University of Uyo</p>
           <h2 className="font-serif text-4xl text-forest">Sign in</h2>
           <p className="text-sm text-[#526059]">Use your email, staff ID, or matriculation number.</p>
           {error ? <Alert>{error}</Alert> : null}
