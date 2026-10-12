@@ -6,10 +6,10 @@ from apps.accounts.services import ensure_default_settings
 from apps.academics.models import AcademicSession, Course, Department, Enrolment, Faculty, Lecturer, Semester, Student
 
 
-def client_for(user):
+def client_for(user, password="Sample@12345"):
     cache.clear()
     api = APIClient()
-    response = api.post("/api/v1/auth/login/", {"identifier": user.email, "password": "Sample@12345"}, format="json")
+    response = api.post("/api/v1/auth/login/", {"identifier": user.email, "password": password}, format="json")
     api.credentials(HTTP_AUTHORIZATION=f"Bearer {response.data['access']}")
     return api, response
 

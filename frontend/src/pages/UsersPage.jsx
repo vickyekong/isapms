@@ -1,16 +1,19 @@
 import { useState } from "react";
 import { api, errorMessage } from "../api/client";
-import { Alert, Button, ConfirmDialog, DataTable, Field, PageHeader, Spinner, inputClass } from "../components/ui";
+import { Alert, Button, ConfirmDialog, DataTable, Field, Modal, PageHeader, Spinner, inputClass } from "../components/ui";
+import { useAuth } from "../context/AuthContext";
 import { usePaged } from "../hooks";
 
 const empty = { email: "", first_name: "", last_name: "", role: "admin", phone: "", password: "", is_active: true };
 
 export default function UsersPage() {
+  const { user: currentUser } = useAuth();
   const list = usePaged("/users/");
   const [form, setForm] = useState(empty);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(null);
+  const [passwordTarget, setPasswordTarget] = useState(null);
 
   function update(event) {
     const { name, value } = event.target;
@@ -59,7 +62,12 @@ export default function UsersPage() {
             { key: "role", label: "Role" },
             { key: "is_active", label: "Status", render: (row) => (row.is_active ? "Active" : "Inactive") },
             { key: "actions", label: "Actions", render: (row) => (
-              <Button variant="secondary" type="button" onClick={() => setPending(row)}>{row.is_active ? "Deactivate" : "Activate"}</Button>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" type="button" onClick={() => setPending(row)}>{row.is_active ? "Deactivate" : "Activate"}</Button>
+                {row.id !== currentUser?.id ? (
+                  <Button variant="secondary" type="button" onClick={() => setPasswordTarget(row)}>Set password</Button>
+                ) : null}
+              </div>
             ) },
           ]}
           rows={list.rows}
@@ -81,6 +89,67 @@ export default function UsersPage() {
           list.reload();
         }}
       />
+      <SetPasswordDialog
+        target={passwordTarget}
+        onClose={() => setPasswordTarget(null)}
+        onDone={(detail) => {
+          setPasswordTarget(null);
+          setMessage(detail);
+        }}
+      />
     </div>
+  );
+}
+
+function SetPasswordDialog({ target, onClose, onDone }) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  function close() {
+    setPassword("");
+    setConfirm("");
+    setError("");
+    onClose();
+  }
+
+  async function onSubmit(event) {
+    event.preventDefault();
+    setError("");
+    if (password !== confirm) {
+      setError("The passwords do not match.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const response = await api.post(`/users/${target.id}/set-password/`, { password });
+      setPassword("");
+      setConfirm("");
+      onDone(response.data.detail);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal open={Boolean(target)} title={`Set password for ${target?.full_name || target?.email || ""}`} onClose={close}>
+      <form className="space-y-4" onSubmit={onSubmit}>
+        <p className="text-sm text-[#526059]">They will be signed out of other devices and must use this password next time. Share it with them privately.</p>
+        {error ? <Alert>{error}</Alert> : null}
+        <Field label="New password" hint="At least 8 characters. Avoid common words and anything close to their name or email.">
+          <input className={inputClass} type="password" autoComplete="new-password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} required />
+        </Field>
+        <Field label="Confirm new password">
+          <input className={inputClass} type="password" autoComplete="new-password" minLength={8} value={confirm} onChange={(event) => setConfirm(event.target.value)} required />
+        </Field>
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" type="button" onClick={close}>Cancel</Button>
+          <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Set password"}</Button>
+        </div>
+      </form>
+    </Modal>
   );
 }

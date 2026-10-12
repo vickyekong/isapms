@@ -43,6 +43,12 @@ export function AuthProvider({ children }) {
         setUser(response.data.user);
         return response.data.user;
       },
+      async changePassword(currentPassword, newPassword) {
+        const response = await api.post("/auth/password-change/", { current_password: currentPassword, new_password: newPassword });
+        localStorage.setItem("isapms_access", response.data.access);
+        localStorage.setItem("isapms_refresh", response.data.refresh);
+        return response.data.detail;
+      },
       async logout() {
         const refresh = localStorage.getItem("isapms_refresh");
         try {

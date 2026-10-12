@@ -46,11 +46,10 @@ class UserSerializer(serializers.ModelSerializer):
         return User.objects.create_user(password=password, **validated_data)
 
     def update(self, instance, validated_data):
-        password = validated_data.pop("password", None)
+        if validated_data.pop("password", None):
+            raise serializers.ValidationError({"password": "Use the set-password action to change a password."})
         for field, value in validated_data.items():
             setattr(instance, field, value)
-        if password:
-            instance.set_password(password)
         instance.save()
         return instance
 
@@ -82,6 +81,15 @@ class SystemSettingSerializer(serializers.ModelSerializer):
 
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    current_password = serializers.CharField(write_only=True, trim_whitespace=False)
+    new_password = serializers.CharField(write_only=True, trim_whitespace=False)
+
+
+class PasswordSetSerializer(serializers.Serializer):
+    password = serializers.CharField(write_only=True, trim_whitespace=False)
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer):

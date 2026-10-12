@@ -7,6 +7,7 @@ from apps.accounts.views import (
     LogoutView,
     MeView,
     NotificationViewSet,
+    PasswordChangeView,
     PasswordResetConfirmView,
     PasswordResetRequestView,
     RefreshView,
@@ -26,6 +27,7 @@ urlpatterns = [
     path("auth/logout/", LogoutView.as_view(), name="logout"),
     path("auth/password-reset/", PasswordResetRequestView.as_view(), name="password-reset"),
     path("auth/password-reset/confirm/", PasswordResetConfirmView.as_view(), name="password-reset-confirm"),
+    path("auth/password-change/", PasswordChangeView.as_view(), name="password-change"),
     path("auth/me/", MeView.as_view(), name="me"),
     path("", include(router.urls)),
 ]

@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.mail import send_mail
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
@@ -9,9 +10,10 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.throttling import AnonRateThrottle
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
@@ -21,8 +23,10 @@ from apps.accounts.permissions import IsAdministrator
 from apps.accounts.serializers import (
     AuditLogSerializer,
     NotificationSerializer,
+    PasswordChangeSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
+    PasswordSetSerializer,
     SystemSettingSerializer,
     UserSerializer,
 )
@@ -31,6 +35,29 @@ from apps.accounts.services import ensure_default_settings
 
 class AuthRateThrottle(AnonRateThrottle):
     scope = "auth"
+
+
+class SignedInAuthRateThrottle(UserRateThrottle):
+    scope = "auth"
+
+
+def issue_tokens(user):
+    refresh = RefreshToken.for_user(user)
+    refresh["role"] = user.role
+    refresh["email"] = user.email
+    return {"refresh": str(refresh), "access": str(refresh.access_token)}
+
+
+def revoke_sessions(user):
+    outstanding = OutstandingToken.objects.filter(user=user, blacklistedtoken__isnull=True)
+    BlacklistedToken.objects.bulk_create([BlacklistedToken(token=token) for token in outstanding], ignore_conflicts=True)
+
+
+def check_password_strength(password, user, field):
+    try:
+        validate_password(password, user)
+    except DjangoValidationError as exc:
+        raise ValidationError({field: list(exc.messages)})
 
 
 class LoginView(APIView):
@@ -52,17 +79,8 @@ class LoginView(APIView):
             return Response({"detail": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED)
         if not user.is_active:
             return Response({"detail": "This account has been deactivated."}, status=status.HTTP_403_FORBIDDEN)
-        refresh = RefreshToken.for_user(user)
-        refresh["role"] = user.role
-        refresh["email"] = user.email
         write_audit(user, "login", "User", user.id, f"{user.email} signed in.", request=request)
-        return Response(
-            {
-                "refresh": str(refresh),
-                "access": str(refresh.access_token),
-                "user": UserSerializer(user).data,
-            }
-        )
+        return Response({**issue_tokens(user), "user": UserSerializer(user).data})
 
 
 class RefreshView(TokenRefreshView):
@@ -128,11 +146,34 @@ class PasswordResetConfirmView(APIView):
             raise ValidationError({"uid": "This reset link is invalid."})
         if not default_token_generator.check_token(user, serializer.validated_data["token"]):
             raise ValidationError({"token": "This reset link is invalid or has expired."})
-        validate_password(serializer.validated_data["password"], user)
+        check_password_strength(serializer.validated_data["password"], user, "password")
         user.set_password(serializer.validated_data["password"])
         user.save(update_fields=["password"])
+        revoke_sessions(user)
         write_audit(user, "password_reset", "User", user.id, "Password was reset.", request=request)
         return Response({"detail": "Password updated. You can sign in with the new password."})
+
+
+class PasswordChangeView(APIView):
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [SignedInAuthRateThrottle]
+
+    def post(self, request):
+        serializer = PasswordChangeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+        current = serializer.validated_data["current_password"]
+        new = serializer.validated_data["new_password"]
+        if not user.check_password(current):
+            raise ValidationError({"current_password": "Your current password is incorrect."})
+        if new == current:
+            raise ValidationError({"new_password": "Choose a password that is different from your current one."})
+        check_password_strength(new, user, "new_password")
+        user.set_password(new)
+        user.save(update_fields=["password"])
+        revoke_sessions(user)
+        write_audit(user, "password_change", "User", user.id, f"{user.email} changed their password.", request=request)
+        return Response({"detail": "Password changed. Other devices have been signed out.", **issue_tokens(user)})
 
 
 class MeView(APIView):
@@ -201,6 +242,20 @@ class UserViewSet(viewsets.ModelViewSet):
         user.save(update_fields=["is_active"])
         write_audit(request.user, "deactivate", "User", user.id, f"Deactivated {user.email}.", request=request)
         return Response(UserSerializer(user).data)
+
+    @action(detail=True, methods=["post"], url_path="set-password", throttle_classes=[SignedInAuthRateThrottle])
+    def set_user_password(self, request, pk=None):
+        user = self.get_object()
+        if user == request.user:
+            raise PermissionDenied("Change your own password from your profile page.")
+        serializer = PasswordSetSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        check_password_strength(serializer.validated_data["password"], user, "password")
+        user.set_password(serializer.validated_data["password"])
+        user.save(update_fields=["password"])
+        revoke_sessions(user)
+        write_audit(request.user, "password_set", "User", user.id, f"Set a new password for {user.email}.", request=request)
+        return Response({"detail": f"Password updated for {user.email}. They have been signed out of other devices."})
 
 
 class NotificationViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
